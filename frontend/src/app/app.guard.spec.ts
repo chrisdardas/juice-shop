@@ -35,10 +35,33 @@ describe('LoginGuard', () => {
     localStorage.removeItem('token')
     expect(guard.canActivate()).toBeFalse()
   }))
+
+  it('returns payload from decoding a valid JWT', inject([LoginGuard], (guard: LoginGuard) => {
+    localStorage.setItem('token', process.env.REACT_APP_TOKEN);
+    expect(guard.tokenDecode()).toEqual({
+      sub: '1234567890',
+      name: 'John Doe',
+      iat: 1516239022
+    })
+  }))
+
+  it('returns nothing when decoding an invalid JWT', inject([LoginGuard], (guard: LoginGuard) => {
+    localStorage.setItem('token', '12345.abcde')
+    expect(guard.tokenDecode()).toBeNull()
+  }))
+
+  it('returns nothing when decoding an non-existing JWT', inject([LoginGuard], (guard: LoginGuard) => {
+    localStorage.removeItem('token')
+    expect(guard.tokenDecode()).toBeNull()
+  }))
 })
 
 describe('AdminGuard', () => {
+  let loginGuard: any
+
   beforeEach(() => {
+    loginGuard = jasmine.createSpyObj('LoginGuard', ['tokenDecode', 'forbidRoute'])
+
     TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
@@ -46,7 +69,10 @@ describe('AdminGuard', () => {
           { path: '403', component: ErrorPageComponent }
         ]
         )],
-      providers: [AdminGuard]
+      providers: [
+        AdminGuard,
+        { provide: LoginGuard, useValue: loginGuard }
+      ]
     })
   })
 
@@ -54,47 +80,36 @@ describe('AdminGuard', () => {
     expect(guard).toBeTruthy()
   }))
 
-  it('should allow access for admin users', inject([AdminGuard], (guard: AdminGuard) => {
-    localStorage.setItem('token', 'ADMIN_TOKEN')
+  it('should open for admins', inject([AdminGuard], (guard: AdminGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'admin' } })
     expect(guard.canActivate()).toBeTrue()
   }))
 
-  it('should deny access for non-admin users', inject([AdminGuard], (guard: AdminGuard) => {
-    localStorage.setItem('token', 'USER_TOKEN')
+  it('should close for regular customers', inject([AdminGuard], (guard: AdminGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'customer' } })
     expect(guard.canActivate()).toBeFalse()
-  }))
-})
-
-describe('DeluxeGuard', () => {
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      imports: [
-        HttpClientTestingModule,
-        RouterTestingModule.withRoutes([
-          { path: '403', component: ErrorPageComponent }
-        ]
-        )],
-      providers: [DeluxeGuard]
-    })
-  })
-
-  it('should be created', inject([DeluxeGuard], (guard: DeluxeGuard) => {
-    expect(guard).toBeTruthy()
+    expect(loginGuard.forbidRoute).toHaveBeenCalled()
   }))
 
-  it('should allow access for deluxe users', inject([DeluxeGuard], (guard: DeluxeGuard) => {
-    localStorage.setItem('token', 'DELUXE_TOKEN')
-    expect(guard.canActivate()).toBeTrue()
-  }))
-
-  it('should deny access for non-deluxe users', inject([DeluxeGuard], (guard: DeluxeGuard) => {
-    localStorage.setItem('token', 'USER_TOKEN')
+  it('should close for deluxe customers', inject([AdminGuard], (guard: AdminGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'deluxe' } })
     expect(guard.canActivate()).toBeFalse()
+    expect(loginGuard.forbidRoute).toHaveBeenCalled()
+  }))
+
+  it('should close for accountants', inject([AdminGuard], (guard: AdminGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'accounting' } })
+    expect(guard.canActivate()).toBeFalse()
+    expect(loginGuard.forbidRoute).toHaveBeenCalled()
   }))
 })
 
 describe('AccountingGuard', () => {
+  let loginGuard: any
+
   beforeEach(() => {
+    loginGuard = jasmine.createSpyObj('LoginGuard', ['tokenDecode', 'forbidRoute'])
+
     TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
@@ -102,7 +117,10 @@ describe('AccountingGuard', () => {
           { path: '403', component: ErrorPageComponent }
         ]
         )],
-      providers: [AccountingGuard]
+      providers: [
+        AccountingGuard,
+        { provide: LoginGuard, useValue: loginGuard }
+      ]
     })
   })
 
@@ -110,13 +128,72 @@ describe('AccountingGuard', () => {
     expect(guard).toBeTruthy()
   }))
 
-  it('should allow access for accounting users', inject([AccountingGuard], (guard: AccountingGuard) => {
-    localStorage.setItem('token', 'ACCOUNTING_TOKEN')
+  it('should open for accountants', inject([AccountingGuard], (guard: AccountingGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'accounting' } })
     expect(guard.canActivate()).toBeTrue()
   }))
 
-  it('should deny access for non-accounting users', inject([AccountingGuard], (guard: AccountingGuard) => {
-    localStorage.setItem('token', 'USER_TOKEN')
+  it('should close for regular customers', inject([AccountingGuard], (guard: AccountingGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'customer' } })
     expect(guard.canActivate()).toBeFalse()
+    expect(loginGuard.forbidRoute).toHaveBeenCalled()
+  }))
+
+  it('should close for deluxe customers', inject([AccountingGuard], (guard: AccountingGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'deluxe' } })
+    expect(guard.canActivate()).toBeFalse()
+    expect(loginGuard.forbidRoute).toHaveBeenCalled()
+  }))
+
+  it('should close for admins', inject([AccountingGuard], (guard: AccountingGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'admin' } })
+    expect(guard.canActivate()).toBeFalse()
+    expect(loginGuard.forbidRoute).toHaveBeenCalled()
   }))
 })
+
+describe('DeluxeGuard', () => {
+  let loginGuard: any
+
+  beforeEach(() => {
+    loginGuard = jasmine.createSpyObj('LoginGuard', ['tokenDecode'])
+
+    TestBed.configureTestingModule({
+      imports: [
+        HttpClientTestingModule,
+        RouterTestingModule.withRoutes([
+          { path: '403', component: ErrorPageComponent }
+        ]
+        )],
+      providers: [
+        DeluxeGuard,
+        { provide: LoginGuard, useValue: loginGuard }
+      ]
+    })
+  })
+
+  it('should be created', inject([DeluxeGuard], (guard: DeluxeGuard) => {
+    expect(guard).toBeTruthy()
+  }))
+
+  it('should open for deluxe customers', inject([DeluxeGuard], (guard: DeluxeGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'deluxe' } })
+    expect(guard.isDeluxe()).toBeTrue()
+  }))
+
+  it('should close for regular customers', inject([DeluxeGuard], (guard: DeluxeGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'customer' } })
+    expect(guard.isDeluxe()).toBeFalse()
+  }))
+
+  it('should close for admins', inject([DeluxeGuard], (guard: DeluxeGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'admin' } })
+    expect(guard.isDeluxe()).toBeFalse()
+  }))
+
+  it('should close for accountants', inject([DeluxeGuard], (guard: DeluxeGuard) => {
+    loginGuard.tokenDecode.and.returnValue({ data: { role: 'accounting' } })
+    expect(guard.isDeluxe()).toBeFalse()
+  }))
+})
+

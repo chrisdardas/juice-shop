@@ -52,3 +52,4 @@ describe('AdministrationService', () => {
     req.flush(dummyData)
   })
 })
+

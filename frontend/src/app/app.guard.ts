@@ -80,11 +80,5 @@ export class DeluxeGuard {
     const payload = this.loginGuard.tokenDecode()
     return payload?.data && payload.data.role === roles.deluxe
   }
-  canActivate(): boolean {
-
-    const token = localStorage.getItem('token');
-
-    return token === 'DELUXE_TOKEN';
-
-  }
 }
+
