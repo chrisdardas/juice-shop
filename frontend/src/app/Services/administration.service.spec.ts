@@ -9,28 +9,47 @@ import { fakeAsync, inject, TestBed, tick } from '@angular/core/testing'
 import { AdministrationService } from './administration.service'
 
 describe('AdministrationService', () => {
+  let service: AdministrationService
+  let httpMock: HttpTestingController
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [AdministrationService]
     })
+    service = TestBed.inject(AdministrationService)
+    httpMock = TestBed.inject(HttpTestingController)
   })
 
-  it('should be created', inject([AdministrationService], (service: AdministrationService) => {
+  afterEach(() => {
+    httpMock.verify()
+  })
+
+  it('should be created', () => {
     expect(service).toBeTruthy()
+  })
+
+  it('should get application version directly from the rest api', fakeAsync(() => {
+    let res: any
+    service.getApplicationVersion().subscribe((data) => (res = data))
+    const req = httpMock.expectOne('http://localhost:3000/rest/admin/application-version')
+    req.flush({ version: 'apiResponse' })
+    tick()
+
+    expect(req.request.method).toBe('GET')
+    expect(res).toBe('apiResponse')
   }))
 
-  it('should get application version directly from the rest api', inject([AdministrationService, HttpTestingController],
-    fakeAsync((service: AdministrationService, httpMock: HttpTestingController) => {
-      let res: any
-      service.getApplicationVersion().subscribe((data) => (res = data))
-      const req = httpMock.expectOne('http://localhost:3000/rest/admin/application-version')
-      req.flush({ version: 'apiResponse' })
-      tick()
-
-      expect(req.request.method).toBe('GET')
-      expect(res).toBe('apiResponse')
-      httpMock.verify()
+  it('should fetch data successfully', () => {
+    const dummyData = [{ id: 1, name: 'Test' }]
+    service.getData().subscribe((data: { id: number, name: string }[]) => {
+      expect(data.length).toBe(1)
+      expect(data).toEqual(dummyData)
     })
-  ))
+
+    const req = httpMock.expectOne(`${service.baseUrl}/data`)
+    expect(req.request.method).toBe('GET')
+    req.flush(dummyData)
+  })
 })
+

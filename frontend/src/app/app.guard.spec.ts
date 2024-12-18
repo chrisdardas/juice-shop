@@ -196,3 +196,4 @@ describe('DeluxeGuard', () => {
     expect(guard.isDeluxe()).toBeFalse()
   }))
 })
+

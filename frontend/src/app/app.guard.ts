@@ -81,3 +81,4 @@ export class DeluxeGuard {
     return payload?.data && payload.data.role === roles.deluxe
   }
 }
+
