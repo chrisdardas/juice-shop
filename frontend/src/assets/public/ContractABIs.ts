@@ -465,7 +465,7 @@ export const nftABI = [
     type: 'function',
   },
 ];
-export const contractABI = [
+export const uniqueContractABI = [
   {
     inputs: [],
     stateMutability: 'nonpayable',
