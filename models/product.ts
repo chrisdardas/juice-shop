@@ -4,16 +4,18 @@
  */
 
 /* jslint node: true */
-import * as utils from '../lib/utils'
-import * as challengeUtils from '../lib/challengeUtils'
 import {
+  utils,
+  challengeUtils,
   Model,
-  type InferAttributes,
-  type InferCreationAttributes,
-  DataTypes,
-  type CreationOptional,
-  type Sequelize
-} from 'sequelize'
+  DataTypes
+} from './commonImports'
+import type {
+  InferAttributes,
+  InferCreationAttributes,
+  CreationOptional,
+  Sequelize
+} from './commonImports'
 import { type BasketItemModel } from './basketitem'
 import { challenges } from '../data/datacache'
 import * as security from '../lib/insecurity'
@@ -44,7 +46,7 @@ const ProductModelInit = (sequelize: Sequelize) => {
         type: DataTypes.STRING,
         set (description: string) {
           if (utils.isChallengeEnabled(challenges.restfulXssChallenge)) {
-            challengeUtils.solveIf(challenges.restfulXssChallenge as unknown as challengeUtils.Challenge, () => {
+            challengeUtils.solveIf(challenges.restfulXssChallenge, () => {
               return utils.contains(
                 description,
                 '<iframe src="javascript:alert(`xss`)">'

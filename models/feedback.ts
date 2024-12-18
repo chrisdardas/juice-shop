@@ -4,16 +4,18 @@
  */
 
 /* jslint node: true */
-import * as utils from '../lib/utils'
-import * as challengeUtils from '../lib/challengeUtils'
 import {
+  utils,
+  challengeUtils,
   Model,
-  type InferAttributes,
-  type InferCreationAttributes,
-  DataTypes,
-  type CreationOptional,
-  type Sequelize
-} from 'sequelize'
+  DataTypes
+} from './commonImports'
+import type {
+  InferAttributes,
+  InferCreationAttributes,
+  CreationOptional,
+  Sequelize
+} from './commonImports'
 import { challenges } from '../data/datacache'
 import * as security from '../lib/insecurity'
 
@@ -43,7 +45,7 @@ const FeedbackModelInit = (sequelize: Sequelize) => {
           let sanitizedComment: string
           if (utils.isChallengeEnabled(challenges.persistedXssFeedbackChallenge)) {
             sanitizedComment = security.sanitizeHtml(comment)
-            challengeUtils.solveIf(challenges.persistedXssFeedbackChallenge as unknown as challengeUtils.Challenge, () => {
+            challengeUtils.solveIf(challenges.persistedXssFeedbackChallenge, () => {
               return utils.contains(
                 sanitizedComment,
                 '<iframe src="javascript:alert(`xss`)">'
@@ -60,7 +62,7 @@ const FeedbackModelInit = (sequelize: Sequelize) => {
         allowNull: false,
         set (rating: number) {
           this.setDataValue('rating', rating)
-          challengeUtils.solveIf(challenges.zeroStarsChallenge as unknown as challengeUtils.Challenge, () => {
+          challengeUtils.solveIf(challenges.zeroStarsChallenge, () => {
             return rating === 0
           })
         }
